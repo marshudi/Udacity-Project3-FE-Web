@@ -12,7 +12,7 @@ To set up and run the Weather Journal App project, follow these steps:
    npm install express cors body-parser
    ```
 3. Obtain an API key from the OpenWeatherMap API by signing up on their website.
-4. Open the `server.js` file and replace `'YOUR_API_KEY'` with your actual API key in the `baseURL` variable.
+4. Open the `server.js` file and replace `'YOUR_API_KEY'` with your actual API key in the `key` variable.
 5. Start the server by running the following command in the project directory:
    ```
    node server.js
