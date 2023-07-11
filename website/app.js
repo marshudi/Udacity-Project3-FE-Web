@@ -1,75 +1,81 @@
-/* Global Variables */
+const weatherAPIBaseURL = 'https://api.openweathermap.org/data/2.5/weather?zip=';
+const weatherAPIKey = '&appid=2280079162c9c5256cba0a2e2af8ab1c&units=metric';
 
-// Define the base URL and API key for OpenWeatherMap API
-let baseURL = 'https://api.openweathermap.org/data/2.5/weather?zip=';
-let key = ',&appid=2280079162c9c5256cba0a2e2af8ab1c&units=metric';
+const server="http://localhost:8080/";
 
-// Create a new date instance dynamically with JS
-let d = new Date();
-let newDate = d.toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
-// Add an event listener to the button with id 'generate'
-document.getElementById('generate').addEventListener('click', performAction);
+const generateButton = document.getElementById('generate');
+generateButton.addEventListener('click', performAction);
 
-// Function called when the button is clicked
-function performAction(e){
-    // Get the values from input fields
-    const postCode = document.getElementById('zip').value;
-    const feelings = document.getElementById('feelings').value;
-    
-    // Call the getTemp function with the required parameters
-    getTemp(baseURL, postCode, key)
-    .then(function (data){
-        // Add data to POST request
-        postData('http://localhost:8080/addWeatherData', {temperature: data.main.temp, date: newDate, user_response: feelings })
-        // Function which updates UI
-        .then(function() {
-            updateUI()
+function performAction() {
+    // Get the zip code and user feelings from the input fields
+    const zipCode = document.getElementById('zip').value;
+    const userFeelings = document.getElementById('feelings').value;
+
+    // Call the getWeatherData function with the zip code
+    getWeatherData(zipCode)
+        .then(data => {
+            // Extract the temperature from the retrieved data
+            const temperature = data.main.temp;
+            // Create a new entry object with temperature, date, and user feelings
+            const newEntry = {
+                temperature: temperature,
+                date: getDate(),
+                user_response: userFeelings
+            };
+            // Call the postData function to send the new entry to the server
+            return postData(server +'addWeatherData', newEntry);
         })
-    })
+        .then(() => {
+            // Call the updateUI function to update the UI with the retrieved data
+            updateUI();
+        })
+        .catch(error => {
+            console.log(error);
+        });
 }
 
-// Async function to get temperature data from OpenWeatherMap API
-const getTemp = async (baseURL, code, key)=>{
-    const response = await fetch(baseURL + code  + key)
-    try {
-        const data = await response.json();
-        return data;
-    }
-    catch(error) {
-        console.log('error', error);
-    }
+async function getWeatherData(zipCode) {
+    // Fetch weather data from the OpenWeatherMap API based on the zip code
+    const response = await fetch(weatherAPIBaseURL + zipCode + weatherAPIKey);
+    const data = await response.json();
+    return data;
 }
 
-// Async function to post data to a local server
-const postData = async (url = '', data = {}) => {
-    const postRequest = await fetch(url, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
+const postData = async (url= "", data={}) => {
+    const req = await fetch(url, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
     });
+  
     try {
-        const newData = await postRequest.json();
+        const newData = await req.json();
+        console.log("Data processed",newData)
         return newData;
     }
     catch (error) {
-        console.log('Error', error);
+        console.log(error);
     }
+  };
+  
+
+async function updateUI() {
+    // Fetch the latest data from the server
+    const response = await fetch(server+'all');
+    const data = await response.json();
+    // Update the UI elements with the retrieved data
+    document.getElementById('date').innerHTML = data.date;
+    document.getElementById('temp').innerHTML = data.temperature;
+    document.getElementById('content').innerHTML = data.user_response;
 }
 
-// Update user interface with the retrieved data
-const updateUI = async () => {
-    const request = await fetch('http://localhost:8080/all');
-    try {
-        const allData = await request.json();
-        document.getElementById('date').innerHTML = allData.date;
-        document.getElementById('temp').innerHTML = allData.temperature;
-        document.getElementById('content').innerHTML = allData.user_response;
-    }
-    catch (error) {
-        console.log('error', error);
-    }
+function getDate() {
+    // Get the current date and format it
+    const currentDate = new Date();
+    const options = { month: 'long', day: 'numeric', year: 'numeric' };
+    return currentDate.toLocaleString('en-US', options);
 }
